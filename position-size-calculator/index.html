@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Position Size Calculator</title>
+<meta name="description" content="Vypočítaj veľkosť pozície (lot size) podľa rizika účtu a stop lossu." />
+<meta name="theme-color" content="#0f172a" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" href="icons/icon-192.png" />
+<link rel="apple-touch-icon" href="icons/icon-192.png" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <h1>📐 Position Size Calculator</h1>
+    <button id="themeToggle" class="icon-btn" type="button" title="Prepnúť tému" aria-label="Prepnúť tému">🌙</button>
+  </header>
+
+  <main>
+    <form id="calcForm" novalidate>
+
+      <section class="card">
+        <h2>1. Účet a riziko</h2>
+        <div class="grid two">
+          <label>
+            Mena účtu
+            <input type="text" id="accountCurrency" maxlength="8" placeholder="napr. USD" value="USD" />
+          </label>
+          <label>
+            Zostatok účtu
+            <input type="number" id="balance" inputmode="decimal" step="any" min="0" placeholder="napr. 10000" required />
+          </label>
+        </div>
+
+        <div class="grid two">
+          <div class="field">
+            <span class="field-label">Riziko na obchod</span>
+            <div class="segmented" role="tablist" aria-label="Typ rizika">
+              <button type="button" class="seg-btn active" data-risk-mode="percent">% z účtu</button>
+              <button type="button" class="seg-btn" data-risk-mode="amount">Pevná suma</button>
+            </div>
+          </div>
+          <label>
+            <span id="riskValueLabel">Riziko (%)</span>
+            <input type="number" id="riskValue" inputmode="decimal" step="any" min="0" value="1" required />
+          </label>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>2. Inštrument a stop loss</h2>
+
+        <label>
+          Inštrument (predvoľba)
+          <select id="instrumentPreset"></select>
+        </label>
+
+        <div class="field">
+          <span class="field-label">Ako zadať stop loss</span>
+          <div class="segmented" role="tablist" aria-label="Režim stop lossu">
+            <button type="button" class="seg-btn active" data-stop-mode="price">Vstup + Stop cena</button>
+            <button type="button" class="seg-btn" data-stop-mode="pips">Vzdialenosť v pipoch</button>
+          </div>
+        </div>
+
+        <div id="stopModePrice" class="grid two">
+          <label>
+            Vstupná cena
+            <input type="number" id="entryPrice" inputmode="decimal" step="any" min="0" placeholder="napr. 1.10000" />
+          </label>
+          <label>
+            Cena stop lossu
+            <input type="number" id="stopPrice" inputmode="decimal" step="any" min="0" placeholder="napr. 1.09500" />
+          </label>
+        </div>
+
+        <div id="stopModePips" class="grid two hidden">
+          <label>
+            Stop loss (v pipoch)
+            <input type="number" id="stopPips" inputmode="decimal" step="any" min="0" placeholder="napr. 50" />
+          </label>
+          <div class="hint-box" id="pipSizeHint"></div>
+        </div>
+
+        <details id="advanced">
+          <summary>Pokročilé nastavenie inštrumentu</summary>
+          <div class="grid two">
+            <label>
+              Veľkosť kontraktu (jednotiek na 1 lot)
+              <input type="number" id="contractSize" inputmode="decimal" step="any" min="0" value="100000" />
+            </label>
+            <label>
+              Veľkosť pipu (cenový krok)
+              <input type="number" id="pipSize" inputmode="decimal" step="any" min="0" value="0.0001" />
+            </label>
+          </div>
+          <label>
+            Konverzný kurz kótovanej meny na menu účtu
+            <input type="number" id="conversionRate" inputmode="decimal" step="any" min="0" value="1" />
+          </label>
+          <p class="hint">
+            Nechaj na <strong>1</strong>, ak je kótovaná mena páru rovnaká ako mena tvojho účtu
+            (napr. EUR/USD s USD účtom). Pri krížových pároch (napr. EUR/USD s EUR účtom) sem zadaj
+            aktuálny kurz kótovanej meny voči mene účtu.
+          </p>
+        </details>
+
+        <label>
+          Zobraziť veľkosť v
+          <select id="lotUnit"></select>
+        </label>
+      </section>
+
+      <button type="submit" class="primary-btn">Vypočítať veľkosť pozície</button>
+    </form>
+
+    <section id="result" class="card result hidden" aria-live="polite">
+      <h2>Výsledok</h2>
+      <div class="result-main">
+        <div class="result-lots" id="resultLots">–</div>
+        <div class="result-sub" id="resultLotsLabel"></div>
+      </div>
+      <dl class="result-grid">
+        <div><dt>Riziko na obchod</dt><dd id="resultRiskAmount">–</dd></div>
+        <div><dt>Vzdialenosť stop lossu</dt><dd id="resultStopDistance">–</dd></div>
+        <div><dt>Veľkosť pozície (jednotky)</dt><dd id="resultUnits">–</dd></div>
+        <div><dt>Strata pri zásahu SL</dt><dd id="resultLossCheck">–</dd></div>
+      </dl>
+      <p class="warning hidden" id="resultWarning"></p>
+    </section>
+
+    <section id="errorBox" class="card error hidden" role="alert"></section>
+
+    <p class="disclaimer">
+      ⚠️ Tento nástroj slúži len na informatívny výpočet veľkosti pozície na základe tebou zadaných
+      údajov. Neposkytuje investičné odporúčania. Vždy si over hodnoty (najmä konverzný kurz a
+      veľkosť kontraktu) podľa špecifikácie svojho brokera.
+    </p>
+  </main>
+</div>
+
+<script src="presets.js"></script>
+<script src="calc.js"></script>
+<script src="app.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js').catch(() => {});
+    });
+  }
+</script>
+</body>
+</html>
