@@ -391,8 +391,9 @@ str.substring(s, start, end)
 
 ```pinescript
 var a = array.new<float>(10, 0.0)
-a.set(0, close)           // v6: also a[0] := close
-a.get(0)                  // v6: also a[0]
+a.set(0, close)
+a.get(0)
+a.get(-1)                 // v6: negative index = last element
 a.push(value)
 a.pop()
 a.shift()                 // remove first
@@ -405,8 +406,10 @@ a.indexof(value)
 a.clear()
 ```
 
-v6: Direct indexing `a[i]` replaces `a.get(i)` / `a.set(i, val)`.
-v6: Negative indexing `a[-1]` gets last element.
+NEVER use `a[i]` to read an element: `[]` on an array is the history-referencing
+operator (`a[1]` = the array ID from the previous bar, not element 1). Always use
+`a.get(i)` / `a.set(i, val)` (or `array.get(a, i)` / `array.set(a, i, val)`).
+v6: Negative indices in array functions -- `a.get(-1)` gets the last element.
 
 ### Maps
 
@@ -983,13 +986,13 @@ When working with `//@version=5` scripts, note these differences from v6:
 | Integer division | `5/2 = 2` (truncated) | `5/2 = 2.5` (float) |
 | Boolean na | Booleans can be `na` | Booleans CANNOT be `na` |
 | `and`/`or` evaluation | Eager (both sides always run) | Lazy (short-circuit) |
-| Array indexing | `a.get(i)` / `a.set(i, v)` | Also `a[i]` and `a[-1]` |
+| Array indexing | `a.get(i)` / `a.set(i, v)` | Same (`a[i]` is history reference, not element access) |
 | `request.*()` scope | Global scope only | Can be called from local scope |
 | `request.*()` args | `simple string` only | `series string` allowed |
 | `when` parameter | Available (deprecated) | Removed |
 | String formatting | Concatenation only | `str.format()` available |
 | Enums | Not available | Available |
-| Negative array index | Not available | `a[-1]` for last element |
+| Negative array index | Not available | `a.get(-1)` for last element |
 | `na()`/`nz()` on bool | Allowed | Compile error |
 | Library constant export | Not available | `export const` available |
 
@@ -1035,7 +1038,7 @@ i_len = input.int(14, "Length", minval=1, maxval=500)   // built-in bounds
 
 ```pinescript
 result = denom != 0 ? num / denom : 0.0                // safe division
-val = idx >= 0 and idx < arr.size() ? arr[idx] : na     // safe array access
+val = idx >= 0 and idx < arr.size() ? arr.get(idx) : na  // safe array access
 safeClose = nz(close[1], open)                           // na fallback
 ```
 
